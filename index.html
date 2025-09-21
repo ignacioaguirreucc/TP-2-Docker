@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 Gestor de Tareas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .form-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: transform 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .tasks-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .task-item {
+            background: white;
+            border: 2px solid #f0f0f0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-item.completed {
+            background: #f8fff8;
+            border-color: #4CAF50;
+            opacity: 0.8;
+        }
+
+        .task-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .task-item.completed .task-title {
+            text-decoration: line-through;
+            color: #666;
+        }
+
+        .task-description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .task-meta {
+            font-size: 0.9em;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .task-actions button {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .empty-state img {
+            width: 100px;
+            opacity: 0.5;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .task-item {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Gestor de Tareas</h1>
+            <p>Organiza tu día de manera eficiente</p>
+        </div>
+
+        <div class="content">
+            <!-- Estadísticas -->
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalTasks">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="pendingTasks">0</div>
+                    <div class="stat-label">Pendientes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="completedTasks">0</div>
+                    <div class="stat-label">Completadas</div>
+                </div>
+            </div>
+
+            <!-- Formulario para nueva tarea -->
+            <div class="form-section">
+                <h3>✨ Nueva Tarea</h3>
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label for="titulo">Título *</label>
+                        <input type="text" id="titulo" name="titulo" required placeholder="¿Qué necesitas hacer?">
+                    </div>
+                    <div class="form-group">
+                        <label for="descripcion">Descripción</label>
+                        <textarea id="descripcion" name="descripcion" rows="3"
+                            placeholder="Detalles adicionales (opcional)"></textarea>
+                    </div>
+                    <button type="submit" class="btn">➕ Agregar Tarea</button>
+                </form>
+            </div>
+
+            <!-- Lista de tareas -->
+            <div class="tasks-section">
+                <h3>📝 Mis Tareas</h3>
+                <div id="tasksList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+
+        // Elementos del DOM
+        const taskForm = document.getElementById('taskForm');
+        const tasksList = document.getElementById('tasksList');
+        const totalTasksEl = document.getElementById('totalTasks');
+        const pendingTasksEl = document.getElementById('pendingTasks');
+        const completedTasksEl = document.getElementById('completedTasks');
+
+        // Cargar tareas al iniciar
+        document.addEventListener('DOMContentLoaded', cargarTareas);
+
+        // Manejar formulario
+        taskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const titulo = document.getElementById('titulo').value;
+            const descripcion = document.getElementById('descripcion').value;
+
+            try {
+                const response = await fetch(`${API_URL}/tareas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ titulo, descripcion })
+                });
+
+                if (response.ok) {
+                    taskForm.reset();
+                    cargarTareas();
+                } else {
+                    alert('Error al crear la tarea');
+                }
+            } catch (error) {
+                alert('Error de conexión con el servidor');
+            }
+        });
+
+        // Cargar tareas desde la API
+        async function cargarTareas() {
+            try {
+                const response = await fetch(`${API_URL}/tareas`);
+                const data = await response.json();
+                mostrarTareas(data.tareas);
+                actualizarEstadisticas(data.tareas);
+            } catch (error) {
+                tasksList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>❌ Error de conexión</h3>
+                        <p>No se pudo conectar con el servidor. Asegúrate de que la API esté funcionando en http://localhost:5000</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Mostrar tareas en el HTML
+        function mostrarTareas(tareas) {
+            if (tareas.length === 0) {
+                tasksList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>📝 Sin tareas</h3>
+                        <p>¡Perfecto! No tienes tareas pendientes. Agrega una nueva tarea arriba.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            tasksList.innerHTML = tareas.map(tarea => `
+                <div class="task-item ${tarea.completada ? 'completed' : ''}">
+                    <div class="status-badge ${tarea.completada ? 'status-completed' : 'status-pending'}">
+                        ${tarea.completada ? '✅ Completada' : '⏳ Pendiente'}
+                    </div>
+                    <div class="task-title">${tarea.titulo}</div>
+                    <div class="task-description">${tarea.descripcion}</div>
+                    <div class="task-meta">
+                        Creada: ${new Date(tarea.fecha_creacion).toLocaleString()}
+                        ${tarea.fecha_completada ? `<br>Completada: ${new Date(tarea.fecha_completada).toLocaleString()}` : ''}
+                    </div>
+                    <div class="task-actions">
+                        ${!tarea.completada ? `<button class="btn btn-success" onclick="completarTarea(${tarea.id})">✅ Completar</button>` : ''}
+                        <button class="btn btn-danger" onclick="eliminarTarea(${tarea.id})">🗑️ Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Completar tarea
+        async function completarTarea(id) {
+            try {
+                const response = await fetch(`${API_URL}/tareas/${id}/completar`, {
+                    method: 'PUT'
+                });
+
+                if (response.ok) {
+                    cargarTareas();
+                } else {
+                    alert('Error al completar la tarea');
+                }
+            } catch (error) {
+                alert('Error de conexión');
+            }
+        }
+
+        // Eliminar tarea
+        async function eliminarTarea(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+                try {
+                    const response = await fetch(`${API_URL}/tareas/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        cargarTareas();
+                    } else {
+                        alert('Error al eliminar la tarea');
+                    }
+                } catch (error) {
+                    alert('Error de conexión');
+                }
+            }
+        }
+
+        // Actualizar estadísticas
+        function actualizarEstadisticas(tareas) {
+            const total = tareas.length;
+            const completadas = tareas.filter(t => t.completada).length;
+            const pendientes = total - completadas;
+
+            totalTasksEl.textContent = total;
+            completedTasksEl.textContent = completadas;
+            pendingTasksEl.textContent = pendientes;
+        }
+    </script>
+</body>
+
+</html>
