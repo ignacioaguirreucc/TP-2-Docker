@@ -1,0 +1,82 @@
+# Docker Compose para API de Tareas - Versión 1.0 con tags específicos
+
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL compartida
+  postgres:
+    image: postgres:15-alpine
+    container_name: tareas-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      # Crear múltiples bases al inicio
+      POSTGRES_MULTIPLE_DATABASES: tareas_qa,tareas_prod
+    volumes:
+      # Volumen persistente para datos
+      - postgres_data:/var/lib/postgresql/data
+      # Script para crear múltiples BDs
+      - ./scripts/create-multiple-postgresql-databases.sh:/docker-entrypoint-initdb.d/create-multiple-postgresql-databases.sh:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - tareas-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Aplicación en entorno QA - Usando versión específica
+  app-qa:
+    image: mi-app-tareas:v1.0  # Versión específica en lugar de build
+    container_name: tareas-app-qa
+    env_file:
+      - qa.env
+    ports:
+      - "5001:5000"  # Host:Container
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tareas-network
+    restart: unless-stopped
+    labels:
+      - "environment=qa"
+      - "service=tareas-api"
+      - "version=v1.0"
+
+  # Aplicación en entorno PRODUCCIÓN - Usando versión específica
+  app-prod:
+    image: mi-app-tareas:v1.0  # Misma versión para consistencia
+    container_name: tareas-app-prod
+    env_file:
+      - prod.env
+    ports:
+      - "5002:5000"  # Host:Container
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tareas-network
+    restart: unless-stopped
+    labels:
+      - "environment=production"
+      - "service=tareas-api"
+      - "version=v1.0"
+
+# Volúmenes nombrados para persistencia
+volumes:
+  postgres_data:
+    driver: local
+    labels:
+      - "backup=daily"
+
+# Red personalizada para comunicación entre servicios
+networks:
+  tareas-network:
+    driver: bridge
+    labels:
+      - "project=tareas-app"
+      - "version=v1.0"

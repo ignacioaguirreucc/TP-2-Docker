@@ -33,6 +33,7 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
@@ -43,6 +44,32 @@
         .header p {
             opacity: 0.9;
             font-size: 1.1em;
+        }
+
+        .environment-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .env-qa {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .env-production {
+            background: #dc3545;
+            color: white;
+        }
+
+        .env-development {
+            background: #28a745;
+            color: white;
         }
 
         .content {
@@ -238,6 +265,26 @@
             font-size: 0.9em;
         }
 
+        .connection-status {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .connection-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .connection-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -259,11 +306,17 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="environment-badge" id="environmentBadge">DETECTANDO...</div>
             <h1>📋 Gestor de Tareas</h1>
             <p>Organiza tu día de manera eficiente</p>
         </div>
 
         <div class="content">
+            <!-- Estado de conexión -->
+            <div class="connection-status" id="connectionStatus">
+                🔄 Verificando conexión con el servidor...
+            </div>
+
             <!-- Estadísticas -->
             <div class="stats">
                 <div class="stat-item">
@@ -306,7 +359,25 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:5000';
+        // Detectar automáticamente la API URL basado en el puerto actual
+        const currentPort = window.location.port;
+        let API_URL;
+        let ENVIRONMENT;
+
+        // Determinar URL de API y entorno basado en el puerto
+        if (currentPort === '5001') {
+            API_URL = `http://localhost:${currentPort}`;
+            ENVIRONMENT = 'qa';
+        } else if (currentPort === '5002') {
+            API_URL = `http://localhost:${currentPort}`;
+            ENVIRONMENT = 'production';
+        } else {
+            API_URL = 'http://localhost:5000';
+            ENVIRONMENT = 'development';
+        }
+
+        console.log(`🚀 Detectado entorno: ${ENVIRONMENT.toUpperCase()}`);
+        console.log(`🌐 API URL: ${API_URL}`);
 
         // Elementos del DOM
         const taskForm = document.getElementById('taskForm');
@@ -314,9 +385,18 @@
         const totalTasksEl = document.getElementById('totalTasks');
         const pendingTasksEl = document.getElementById('pendingTasks');
         const completedTasksEl = document.getElementById('completedTasks');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const environmentBadge = document.getElementById('environmentBadge');
+
+        // Configurar badge de entorno
+        environmentBadge.textContent = ENVIRONMENT.toUpperCase();
+        environmentBadge.className = `environment-badge env-${ENVIRONMENT}`;
 
         // Cargar tareas al iniciar
-        document.addEventListener('DOMContentLoaded', cargarTareas);
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarConexion();
+            cargarTareas();
+        });
 
         // Manejar formulario
         taskForm.addEventListener('submit', async (e) => {
@@ -342,23 +422,64 @@
                 }
             } catch (error) {
                 alert('Error de conexión con el servidor');
+                actualizarEstadoConexion(false);
             }
         });
+
+        // Verificar conexión con la API
+        async function verificarConexion() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    actualizarEstadoConexion(true, data);
+                } else {
+                    actualizarEstadoConexion(false);
+                }
+            } catch (error) {
+                actualizarEstadoConexion(false);
+            }
+        }
+
+        // Actualizar estado de conexión
+        function actualizarEstadoConexion(conectado, data = null) {
+            if (conectado) {
+                connectionStatus.className = 'connection-status connection-success';
+                connectionStatus.innerHTML = `
+                    ✅ Conectado al servidor ${ENVIRONMENT.toUpperCase()}
+                    ${data ? `<br><small>Base de datos: ${data.database} | ${data.timestamp}</small>` : ''}
+                `;
+            } else {
+                connectionStatus.className = 'connection-status connection-error';
+                connectionStatus.innerHTML = `
+                    ❌ Error de conexión con el servidor
+                    <br><small>Verificando: ${API_URL}</small>
+                `;
+            }
+        }
 
         // Cargar tareas desde la API
         async function cargarTareas() {
             try {
                 const response = await fetch(`${API_URL}/tareas`);
-                const data = await response.json();
-                mostrarTareas(data.tareas);
-                actualizarEstadisticas(data.tareas);
+                if (response.ok) {
+                    const data = await response.json();
+                    mostrarTareas(data.tareas);
+                    actualizarEstadisticas(data.tareas);
+                    actualizarEstadoConexion(true);
+                } else {
+                    throw new Error('Error en la respuesta del servidor');
+                }
             } catch (error) {
                 tasksList.innerHTML = `
                     <div class="empty-state">
-                        <h3>❌ Error de conexión</h3>
-                        <p>No se pudo conectar con el servidor. Asegúrate de que la API esté funcionando en http://localhost:5000</p>
+                        <h3>⚠️ Error de conexión</h3>
+                        <p>No se pudo conectar con el servidor en ${API_URL}</p>
+                        <p><small>Entorno detectado: ${ENVIRONMENT.toUpperCase()}</small></p>
+                        <button class="btn" onclick="location.reload()">🔄 Reintentar</button>
                     </div>
                 `;
+                actualizarEstadoConexion(false);
             }
         }
 
@@ -369,6 +490,7 @@
                     <div class="empty-state">
                         <h3>📝 Sin tareas</h3>
                         <p>¡Perfecto! No tienes tareas pendientes. Agrega una nueva tarea arriba.</p>
+                        <p><small>Entorno: ${ENVIRONMENT.toUpperCase()}</small></p>
                     </div>
                 `;
                 return;
@@ -384,6 +506,7 @@
                     <div class="task-meta">
                         Creada: ${new Date(tarea.fecha_creacion).toLocaleString()}
                         ${tarea.fecha_completada ? `<br>Completada: ${new Date(tarea.fecha_completada).toLocaleString()}` : ''}
+                        <br><small>Entorno: ${tarea.entorno || ENVIRONMENT}</small>
                     </div>
                     <div class="task-actions">
                         ${!tarea.completada ? `<button class="btn btn-success" onclick="completarTarea(${tarea.id})">✅ Completar</button>` : ''}
@@ -407,6 +530,7 @@
                 }
             } catch (error) {
                 alert('Error de conexión');
+                actualizarEstadoConexion(false);
             }
         }
 
@@ -425,6 +549,7 @@
                     }
                 } catch (error) {
                     alert('Error de conexión');
+                    actualizarEstadoConexion(false);
                 }
             }
         }
@@ -439,6 +564,9 @@
             completedTasksEl.textContent = completadas;
             pendingTasksEl.textContent = pendientes;
         }
+
+        // Verificar conexión cada 30 segundos
+        setInterval(verificarConexion, 30000);
     </script>
 </body>
 
